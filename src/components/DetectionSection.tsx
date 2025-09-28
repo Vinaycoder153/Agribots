@@ -1,22 +1,39 @@
-import React, { useState, useRef } from 'react';
-import { Camera, Upload, Scan, CheckCircle, AlertTriangle, Lightbulb } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
+import React, { useState, useRef } from "react";
+import { Camera, Upload, Scan, CheckCircle, AlertTriangle, Lightbulb, X } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 
 interface DetectionSectionProps {
   translations: any;
+  user?: { name: string; authenticated: boolean }; // Optional auth
 }
 
-const DetectionSection: React.FC<DetectionSectionProps> = ({ translations }) => {
+interface DetectionResult {
+  disease: string;
+  confidence: number;
+  severity: "Low" | "Moderate" | "High";
+  treatment: string;
+  prevention: string;
+  crop: string;
+}
+
+const DetectionSection: React.FC<DetectionSectionProps> = ({ translations, user }) => {
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [isDetecting, setIsDetecting] = useState(false);
-  const [detectionResult, setDetectionResult] = useState<any>(null);
+  const [detectionResult, setDetectionResult] = useState<DetectionResult | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    setError(null);
     const file = event.target.files?.[0];
     if (file) {
+      if (!file.type.startsWith("image/")) {
+        setError(translations.errors.invalidFile);
+        return;
+      }
       const reader = new FileReader();
       reader.onload = (e) => {
         setSelectedImage(e.target?.result as string);
@@ -27,27 +44,46 @@ const DetectionSection: React.FC<DetectionSectionProps> = ({ translations }) => 
   };
 
   const handleDetection = async () => {
-    if (!selectedImage) return;
-    
+    if (!selectedImage) {
+      setError(translations.errors.noImage);
+      return;
+    }
+
     setIsDetecting(true);
-    
-    // Mock detection result - in real app, this would call AI service
-    setTimeout(() => {
-      setDetectionResult({
+    setError(null);
+
+    try {
+      // TODO: Replace with actual AI detection API
+      const mockResult: DetectionResult = {
         disease: "Late Blight",
         confidence: 94,
         severity: "Moderate",
-        treatment: "Apply copper-based fungicide immediately. Remove affected leaves and improve air circulation around plants.",
-        prevention: "Ensure proper spacing between plants, avoid overhead watering, and apply preventive fungicide during humid conditions.",
+        treatment:
+          "Apply copper-based fungicide immediately. Remove affected leaves and improve air circulation around plants.",
+        prevention:
+          "Ensure proper spacing between plants, avoid overhead watering, and apply preventive fungicide during humid conditions.",
         crop: "Tomato",
-      });
+      };
+
+      // Simulate network delay
+      setTimeout(() => {
+        setDetectionResult(mockResult);
+        setIsDetecting(false);
+      }, 2000);
+    } catch (err) {
+      setError(translations.errors.detectionFailed);
       setIsDetecting(false);
-    }, 2000);
+    }
   };
 
   const openCamera = () => {
-    // Mock camera functionality - in real app, this would open device camera
-    alert("Camera functionality would open here. For demo, please use upload instead.");
+    alert(translations.messages.cameraPlaceholder);
+  };
+
+  const clearImage = () => {
+    setSelectedImage(null);
+    setDetectionResult(null);
+    setError(null);
   };
 
   return (
@@ -56,21 +92,24 @@ const DetectionSection: React.FC<DetectionSectionProps> = ({ translations }) => 
         <div className="max-w-4xl mx-auto">
           {/* Header */}
           <div className="text-center mb-12">
-            <h2 className="text-3xl sm:text-4xl font-bold font-heading text-foreground mb-4">
+            <h2 className="text-3xl sm:text-4xl font-bold text-foreground mb-4">
               {translations.detection.title}
             </h2>
             <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
               {translations.detection.subtitle}
             </p>
+            {user && !user.authenticated && (
+              <p className="text-warning mt-2">{translations.messages.loginRequired}</p>
+            )}
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
             {/* Input Section */}
-            <Card className="shadow-medium">
+            <Card className="shadow-lg">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Scan className="h-5 w-5 text-primary" />
-                  Upload Crop Image
+                  {translations.detection.uploadTitle}
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-6">
@@ -83,35 +122,35 @@ const DetectionSection: React.FC<DetectionSectionProps> = ({ translations }) => 
                       className="w-full h-64 object-cover rounded-lg border-2 border-border"
                     />
                     <button
-                      onClick={() => setSelectedImage(null)}
-                      className="absolute top-2 right-2 bg-error text-error-foreground rounded-full w-8 h-8 flex items-center justify-center text-sm hover:bg-error/90 transition-fast"
+                      onClick={clearImage}
+                      className="absolute top-2 right-2 bg-error text-error-foreground rounded-full w-8 h-8 flex items-center justify-center hover:bg-error/90 transition-fast"
                     >
-                      ×
+                      <X className="h-4 w-4" />
                     </button>
                   </div>
                 ) : (
                   <div className="border-2 border-dashed border-border rounded-lg p-12 text-center">
                     <Camera className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
                     <p className="text-muted-foreground mb-4">
-                      No image selected. Choose an option below.
+                      {translations.detection.noImage}
                     </p>
                   </div>
                 )}
 
                 {/* Action Buttons */}
                 <div className="space-y-3">
-                  <Button 
-                    variant="farmer" 
-                    size="lg" 
+                  <Button
+                    variant="farmer"
+                    size="lg"
                     onClick={openCamera}
                     className="w-full"
                   >
                     <Camera className="h-5 w-5 mr-2" />
                     {translations.detection.buttons.camera}
                   </Button>
-                  
-                  <Button 
-                    variant="outline" 
+
+                  <Button
+                    variant="outline"
                     size="lg"
                     onClick={() => fileInputRef.current?.click()}
                     className="w-full"
@@ -119,7 +158,7 @@ const DetectionSection: React.FC<DetectionSectionProps> = ({ translations }) => 
                     <Upload className="h-5 w-5 mr-2" />
                     {translations.detection.buttons.upload}
                   </Button>
-                  
+
                   <input
                     ref={fileInputRef}
                     type="file"
@@ -135,27 +174,30 @@ const DetectionSection: React.FC<DetectionSectionProps> = ({ translations }) => 
                     variant="hero"
                     size="lg"
                     onClick={handleDetection}
-                    disabled={isDetecting}
+                    disabled={isDetecting || (user && !user.authenticated)}
                     className="w-full"
                   >
                     {isDetecting ? (
-                      <>
-                        <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2" />
-                        Analyzing...
-                      </>
+                      <div className="flex items-center justify-center space-x-2">
+                        <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white" />
+                        <span>{translations.detection.analyzing}</span>
+                      </div>
                     ) : (
-                      <>
-                        <Scan className="h-5 w-5 mr-2" />
-                        {translations.detection.buttons.detect}
-                      </>
+                      <div className="flex items-center justify-center space-x-2">
+                        <Scan className="h-5 w-5" />
+                        <span>{translations.detection.buttons.detect}</span>
+                      </div>
                     )}
                   </Button>
                 )}
+
+                {/* Error Message */}
+                {error && <p className="text-error text-sm mt-2">{error}</p>}
               </CardContent>
             </Card>
 
             {/* Results Section */}
-            <Card className="shadow-medium">
+            <Card className="shadow-lg">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <CheckCircle className="h-5 w-5 text-success" />
@@ -171,19 +213,27 @@ const DetectionSection: React.FC<DetectionSectionProps> = ({ translations }) => 
                         <h3 className="text-xl font-semibold text-foreground">
                           {detectionResult.disease}
                         </h3>
-                        <Badge 
+                        <Badge
                           variant={detectionResult.confidence > 90 ? "default" : "secondary"}
                           className="text-sm"
                         >
                           {detectionResult.confidence}% {translations.detection.results.confidence}
                         </Badge>
                       </div>
-                      
+
                       <div className="flex items-center gap-2">
-                        <span className="text-sm text-muted-foreground">Crop:</span>
+                        <span className="text-sm text-muted-foreground">{translations.detection.results.crop}:</span>
                         <span className="font-medium">{detectionResult.crop}</span>
-                        <span className="text-sm text-muted-foreground">Severity:</span>
-                        <Badge variant={detectionResult.severity === 'High' ? 'destructive' : 'secondary'}>
+                        <span className="text-sm text-muted-foreground">{translations.detection.results.severity}:</span>
+                        <Badge
+                          variant={
+                            detectionResult.severity === "High"
+                              ? "destructive"
+                              : detectionResult.severity === "Moderate"
+                              ? "secondary"
+                              : "default"
+                          }
+                        >
                           {detectionResult.severity}
                         </Badge>
                       </div>
@@ -215,7 +265,7 @@ const DetectionSection: React.FC<DetectionSectionProps> = ({ translations }) => 
                   <div className="text-center py-12">
                     <Scan className="h-16 w-16 text-muted-foreground mx-auto mb-4 opacity-50" />
                     <p className="text-muted-foreground">
-                      Upload an image and click detect to see results here.
+                      {translations.detection.results.placeholder}
                     </p>
                   </div>
                 )}
