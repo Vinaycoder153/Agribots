@@ -43,6 +43,15 @@ const Index = () => {
         <FeaturesSection translations={currentTranslations} />
       </main>
 
+    <link href="https://cdn.jsdelivr.net/npm/@n8n/chat/dist/style.css" rel="stylesheet" />
+    <script type="module">
+	  import { createChat } from 'https://cdn.jsdelivr.net/npm/@n8n/chat/dist/chat.bundle.es.js';
+
+	  createChat({
+		   webhookUrl: 'https://codertest32.app.n8n.cloud/webhook/87e62600-047c-43e3-9f55-3bd8c1e71e33/chat'
+	   });
+     </script>
+
       {/* Footer */}
       <footer className="bg-primary text-primary-foreground py-12">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
